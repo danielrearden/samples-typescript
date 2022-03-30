@@ -1,7 +1,7 @@
 import fs from 'fs';
 
 // @@@SNIPSTART typescript-mtls-worker
-import { Worker, Core } from '@temporalio/worker';
+import { Worker, NativeConnection } from '@temporalio/worker';
 import * as activities from './activities';
 
 /**
@@ -22,25 +22,24 @@ async function run({
     serverRootCACertificate = fs.readFileSync(serverRootCACertificatePath);
   }
 
-  await Core.install({
-    serverOptions: {
-      address,
-      namespace,
-      tls: {
-        serverNameOverride,
-        serverRootCACertificate,
-        // See docs for other TLS options
-        clientCertPair: {
-          crt: fs.readFileSync(clientCertPath),
-          key: fs.readFileSync(clientKeyPath),
-        },
+  const connection = await NativeConnection.create({
+    address,
+    tls: {
+      serverNameOverride,
+      serverRootCACertificate,
+      // See docs for other TLS options
+      clientCertPair: {
+        crt: fs.readFileSync(clientCertPath),
+        key: fs.readFileSync(clientKeyPath),
       },
     },
   });
 
   const worker = await Worker.create({
     workflowsPath: require.resolve('./workflows'),
+    connection,
     activities,
+    namespace,
     taskQueue,
   });
   console.log('Worker connection successfully established');
